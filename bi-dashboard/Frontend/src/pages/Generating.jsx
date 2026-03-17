@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '../hooks/useMotion';
+import BackButton from '../components/BackButton';
 
 const PRIMARY = '#2F8D46';
 
@@ -44,10 +45,13 @@ export default function Generating() {
       <header className="sticky top-0 z-50 w-full border-b border-white/40" style={{backdropFilter: 'blur(20px) saturate(180%)', backgroundColor: 'rgba(255,255,255,0.7)'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-3xl font-bold" style={{color: PRIMARY}}>bar_chart</span>
-              <span className="font-mono text-xl font-bold tracking-tighter text-slate-900">QueryIQ</span>
-            </Link>
+            <div className="flex items-center gap-4">
+              <BackButton />
+              <Link to="/" className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-3xl font-bold" style={{color: PRIMARY}}>bar_chart</span>
+                <span className="font-mono text-xl font-bold tracking-tighter text-slate-900">QueryIQ</span>
+              </Link>
+            </div>
             <div className="flex items-center gap-4">
               <button className="p-2 text-slate-500 hover:text-[#2F8D46] transition-colors"><span className="material-symbols-outlined">notifications</span></button>
               <div className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm border" style={{backgroundColor: `${PRIMARY}22`, color: PRIMARY, borderColor: `${PRIMARY}44`}}>JD</div>

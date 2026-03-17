@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FadeIn, Stagger, StaggerChild, MotionButton } from '../components/MotionElements';
+import BackButton from '../components/BackButton';
 
 const PRIMARY = '#2F8D46';
 
@@ -15,14 +16,14 @@ function Sidebar() {
         <span className="material-symbols-outlined">dashboard</span>
         <p className="text-sm font-bold">Dashboard</p>
       </div>
-      <Link to="/editor" className="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer">
+      {/*<Link to="/editor" className="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer">
         <span className="material-symbols-outlined">analytics</span>
         <p className="text-sm font-medium">Deep Analysis</p>
-      </Link>
-      <div className="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer">
+      </Link>*/}
+      <Link to="/history" className="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer">
         <span className="material-symbols-outlined">history</span>
         <p className="text-sm font-medium">Query History</p>
-      </div>
+      </Link>
       <div className="mt-auto">
         <div className="p-4 rounded-xl border" style={{backgroundColor: `${PRIMARY}0D`, borderColor: `${PRIMARY}22`}}>
           <p className="text-xs font-bold mb-1" style={{color: PRIMARY}}>PRO PLAN</p>
@@ -47,10 +48,13 @@ export default function Editor() {
       <Sidebar />
       <main className="flex-1 flex flex-col bg-[#f8f6f6] overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-            <span>Workspace</span>
-            <span>/</span>
-            <span className="font-semibold text-[#1A1A1A]">SQL Editor</span>
+          <div className="flex items-center gap-4">
+            <BackButton />
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span>Workspace</span>
+              <span>/</span>
+              <span className="font-semibold text-[#1A1A1A]">SQL Editor</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg"><span className="material-symbols-outlined">settings</span></button>

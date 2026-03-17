@@ -29,18 +29,16 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-3xl font-bold" style={{color: PRIMARY}}>bar_chart</span>
+              <span className="material-symbols-outlined text-3xl font-bold" style={{ color: PRIMARY }}>bar_chart</span>
               <span className="font-mono text-xl font-bold tracking-tighter text-slate-900">QueryIQ</span>
             </Link>
             <nav className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm font-medium hover:text-[#2F8D46] transition-colors">Home</Link>
+
               <Link to="/upload" className="text-sm font-medium hover:text-[#2F8D46] transition-colors">Upload</Link>
               <Link to="/editor" className="text-sm font-medium hover:text-[#2F8D46] transition-colors">Editor</Link>
               <Link to="/dashboard" className="text-sm font-medium hover:text-[#2F8D46] transition-colors">Dashboard</Link>
             </nav>
-            <MotionButton onClick={() => navigate('/upload')} className="text-white px-5 py-2 rounded-lg font-bold text-sm" style={{backgroundColor: PRIMARY}}>
-              Try Now
-            </MotionButton>
+
           </div>
         </div>
       </header>
@@ -51,13 +49,13 @@ export default function LandingPage() {
           <div className="lg:flex lg:items-center lg:gap-16">
             <div className="lg:w-3/5 space-y-8">
               <FadeIn delay={0}>
-                <div className="inline-flex items-center px-3 py-1 rounded-full border text-sm font-semibold" style={{backgroundColor: `${PRIMARY}1A`, borderColor: `${PRIMARY}33`, color: PRIMARY}}>
+                <div className="inline-flex items-center px-3 py-1 rounded-full border text-sm font-semibold" style={{ backgroundColor: `${PRIMARY}1A`, borderColor: `${PRIMARY}33`, color: PRIMARY }}>
                   AI-Powered BI Tool
                 </div>
               </FadeIn>
               <FadeIn delay={0.1}>
                 <h1 className="text-5xl lg:text-7xl font-black leading-tight tracking-tight text-slate-900">
-                  Turn Plain English Into <span style={{color: PRIMARY}}>Instant Dashboards</span>
+                  Turn Plain English Into <span style={{ color: PRIMARY }}>Instant Dashboards</span>
                 </h1>
               </FadeIn>
               <FadeIn delay={0.2}>
@@ -67,7 +65,7 @@ export default function LandingPage() {
               </FadeIn>
               <FadeIn delay={0.3}>
                 <div className="flex flex-wrap gap-4">
-                  <MotionButton onClick={() => navigate('/upload')} className="text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg" style={{backgroundColor: PRIMARY}}>
+                  <MotionButton onClick={() => navigate('/upload')} className="text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg" style={{ backgroundColor: PRIMARY }}>
                     Get Started Free
                   </MotionButton>
                   <MotionButton onClick={() => navigate('/editor')} className="border-2 border-slate-300 hover:border-[#2F8D46] text-slate-700 px-8 py-4 rounded-xl font-bold text-lg transition-colors">
@@ -84,12 +82,12 @@ export default function LandingPage() {
                     <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                   </div>
-                  <div className="rounded-lg border p-4" style={{backgroundColor: `${PRIMARY}0D`, borderColor: `${PRIMARY}4D`}}>
-                    <p className="text-sm font-mono" style={{color: PRIMARY}}>"Show me monthly sales growth for the last quarter by region"</p>
+                  <div className="rounded-lg border p-4" style={{ backgroundColor: `${PRIMARY}0D`, borderColor: `${PRIMARY}4D` }}>
+                    <p className="text-sm font-mono" style={{ color: PRIMARY }}>"Show me monthly sales growth for the last quarter by region"</p>
                   </div>
                   <div className="h-40 bg-slate-50 rounded-lg flex items-end justify-between p-4 gap-2">
                     {[50, 75, 100, 65, 85, 90].map((h, i) => (
-                      <div key={i} className="flex-1 rounded-t" style={{height: `${h}%`, backgroundColor: PRIMARY, opacity: h / 100 + 0.3}}></div>
+                      <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, backgroundColor: PRIMARY, opacity: h / 100 + 0.3 }}></div>
                     ))}
                   </div>
                 </div>
@@ -107,7 +105,7 @@ export default function LandingPage() {
             {steps.map(({ step, title, desc }) => (
               <StaggerChild key={step}>
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full text-white flex items-center justify-center text-2xl font-bold" style={{backgroundColor: PRIMARY}}>{step}</div>
+                  <div className="w-16 h-16 rounded-full text-white flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: PRIMARY }}>{step}</div>
                   <h3 className="text-xl font-bold">{title}</h3>
                   <p className="text-slate-600">{desc}</p>
                 </div>
@@ -130,7 +128,7 @@ export default function LandingPage() {
             {features.map(({ icon, title, desc }) => (
               <StaggerChild key={title}>
                 <div className="bg-slate-800/40 p-8 rounded-xl border border-slate-700 hover:border-[#2F8D46] transition-colors group h-full">
-                  <span className="material-symbols-outlined text-4xl mb-4 block group-hover:scale-110 transition-transform" style={{color: PRIMARY}}>{icon}</span>
+                  <span className="material-symbols-outlined text-4xl mb-4 block group-hover:scale-110 transition-transform" style={{ color: PRIMARY }}>{icon}</span>
                   <h3 className="text-xl font-bold mb-2">{title}</h3>
                   <p className="text-slate-400">{desc}</p>
                 </div>
@@ -151,8 +149,8 @@ export default function LandingPage() {
               { n: '03', q: '"Compare YoY growth of active subscribers across our top 5 cities."' },
             ].map(({ n, q }) => (
               <StaggerChild key={n}>
-                <div className="p-6 rounded-lg bg-white border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{borderColor: PRIMARY}} onClick={() => navigate('/editor')}>
-                  <code className="font-mono text-sm block mb-2" style={{color: PRIMARY}}>Query #{n}</code>
+                <div className="p-6 rounded-lg bg-white border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{ borderColor: PRIMARY }} onClick={() => navigate('/editor')}>
+                  <code className="font-mono text-sm block mb-2" style={{ color: PRIMARY }}>Query #{n}</code>
                   <p className="font-mono text-slate-700">{q}</p>
                 </div>
               </StaggerChild>
@@ -167,7 +165,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-2xl font-bold" style={{color: PRIMARY}}>bar_chart</span>
+                <span className="material-symbols-outlined text-2xl font-bold" style={{ color: PRIMARY }}>bar_chart</span>
                 <span className="font-mono text-xl font-bold text-white tracking-tighter">QueryIQ</span>
               </div>
               <p className="text-sm leading-relaxed max-w-xs">Empowering teams to make data-driven decisions using natural language and advanced AI.</p>
