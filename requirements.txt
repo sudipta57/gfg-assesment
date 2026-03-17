@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+pandas
+pydantic
+# sqlite3 is included with Python's standard library
+python-multipart
+requests
