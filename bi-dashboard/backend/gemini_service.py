@@ -3,14 +3,13 @@
 import json
 import os
 
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def generate_dashboard_config(user_prompt: str, schema: str) -> dict:
@@ -59,10 +58,12 @@ def generate_dashboard_config(user_prompt: str, schema: str) -> dict:
 	"""
 
 		full_prompt = f"{system_prompt}\n\nUser Question: {user_prompt}"
-		response = model.generate_content(full_prompt)
-		response_text = response.text
+		response = client.models.generate_content(
+model="gemini-2.5-flash",			contents=full_prompt,
+		)
+		raw_text = response.text
 		cleaned_lines = [
-			line for line in response_text.splitlines() if not line.strip().startswith("```")
+			line for line in raw_text.splitlines() if not line.strip().startswith("```")
 		]
 		cleaned_text = "\n".join(cleaned_lines).strip()
 		return json.loads(cleaned_text)
