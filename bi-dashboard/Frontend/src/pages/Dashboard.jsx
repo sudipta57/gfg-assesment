@@ -329,7 +329,7 @@ export default function Dashboard() {
         </main>
 
         {/* GLASS CHAT PANEL */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
           className="w-80 flex flex-col shrink-0"
           style={{ ...glassCard, borderLeft: '1px solid rgba(255,255,255,0.5)' }}>
@@ -379,7 +379,7 @@ export default function Dashboard() {
             </div>
             <p className="text-[10px] text-center text-slate-400 mt-2">Powered by QueryIQ Advanced Reasoning</p>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );
