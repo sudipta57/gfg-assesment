@@ -6,28 +6,9 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { StaggerChild } from '../components/MotionElements';
+import { useApp } from '../context/AppContext';
 
 const PRIMARY = '#2F8D46';
-
-const revenueData = [
-  { month: 'Jul', value: 42 }, { month: 'Aug', value: 58 }, { month: 'Sep', value: 47 },
-  { month: 'Oct', value: 74 }, { month: 'Nov', value: 100 }, { month: 'Dec', value: 85 },
-];
-const regionData = [
-  { name: 'North', value: 34 }, { name: 'South', value: 27 }, { name: 'East', value: 22 }, { name: 'West', value: 17 },
-];
-const COLORS = [PRIMARY, '#86efac', '#4ade80', '#22c55e'];
-const conversionData = [
-  { month: 'Jul', rate: 2.8 }, { month: 'Aug', rate: 3.0 }, { month: 'Sep', rate: 2.9 },
-  { month: 'Oct', rate: 3.1 }, { month: 'Nov', rate: 3.2 }, { month: 'Dec', rate: 3.4 },
-];
-const topProducts = [
-  { name: 'Cloud Suite Pro',   rev: '$189,000', share: '45%', growth: '+18%' },
-  { name: 'Enterprise License', rev: '$126,000', share: '30%', growth: '+12%' },
-  { name: 'Analytics Add-on',  rev: '$63,000',  share: '15%', growth: '+5%' },
-  { name: 'API Credits',       rev: '$42,000',  share: '10%', growth: '-2%' },
-];
 
 const glassCard = {
   backdropFilter: 'blur(20px) saturate(180%)',
@@ -95,19 +76,179 @@ function Sidebar() {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const { dashboardData, currentPrompt, setCurrentPrompt, setDashboardData, setError } = useApp();
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: 'I\'ve analyzed your data. North region leads revenue at 34%, showing strong recovery since Q3. The spike in December coincides with the "Pro" tier rollout.' },
-    { role: 'user', text: 'What caused the spike in December?' },
-    { role: 'ai', text: 'The December spike was primarily driven by a 24% increase in Enterprise renewals and the successful launch of Cloud Suite Pro in the North region.' },
-  ]);
+  const [messages, setMessages] = useState([]);
 
-  const sendMessage = () => {
+  if (!dashboardData) {
+    return (
+      <div className="flex h-screen items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #f8f6f6 60%, #eff6ff 100%)' }}>
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl mb-4 block" style={{ color: PRIMARY }}>dashboard</span>
+          <p className="text-slate-500 mb-4">No dashboard data yet.</p>
+          <Link to="/editor" className="font-bold text-sm" style={{ color: PRIMARY }}>
+            ← Go ask a question
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { dashboard_title, summary, charts = [], raw_sql } = dashboardData;
+  const COLORS = ['#2F8D46', '#86efac', '#4ade80', '#22c55e', '#16a34a', '#bbf7d0'];
+
+  const renderChart = (chart, index) => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.08 }}
+        className="p-6 rounded-2xl shadow-lg"
+        style={glassCard}
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider">
+              {chart.title}
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">{chart.description}</p>
+          </div>
+        </div>
+
+        <div className="h-56">
+          {chart.chart_type === 'bar' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart.data} barSize={28}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey={chart.x_key} axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                  tickFormatter={v => typeof v === 'string' && v.length > 10 ? v.slice(0, 10) + '…' : v} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                  tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: 'none',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    background: 'rgba(255,255,255,0.95)' }}
+                  formatter={v => [`${Number(v).toLocaleString()}`, '']} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {chart.y_keys.map((key, i) => (
+                  <Bar key={key} dataKey={key} fill={COLORS[i % COLORS.length]}
+                    radius={[6, 6, 0, 0]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+
+          {(chart.chart_type === 'line' || chart.chart_type === 'area') && (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chart.data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey={chart.x_key} axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                  tickFormatter={v => typeof v === 'string' && v.length > 7 ? v.slice(0, 7) : v} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                  tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: 'none',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    background: 'rgba(255,255,255,0.95)' }}
+                  formatter={v => [`${Number(v).toLocaleString()}`, '']} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {chart.y_keys.map((key, i) => (
+                  <Line key={key} type="monotone" dataKey={key}
+                    stroke={COLORS[i % COLORS.length]} strokeWidth={3}
+                    dot={{ r: 3, fill: COLORS[i % COLORS.length], strokeWidth: 0 }}
+                    activeDot={{ r: 5 }} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+
+          {chart.chart_type === 'pie' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={chart.data} cx="50%" cy="50%"
+                  innerRadius={50} outerRadius={80}
+                  paddingAngle={3}
+                  dataKey={chart.y_keys[0]}
+                  nameKey={chart.x_key}>
+                  {chart.data.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: 'none',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    background: 'rgba(255,255,255,0.95)' }}
+                  formatter={v => [`${Number(v).toLocaleString()}`, '']} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+
+          {chart.chart_type === 'scatter' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart.data} barSize={20}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
+                <XAxis dataKey={chart.x_key} axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                <YAxis axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: 'none',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    background: 'rgba(255,255,255,0.95)' }} />
+                {chart.y_keys.map((key, i) => (
+                  <Bar key={key} dataKey={key} fill={COLORS[i % COLORS.length]}
+                    radius={[4, 4, 0, 0]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-start gap-2 p-3 rounded-xl"
+          style={{ backgroundColor: `${PRIMARY}0D` }}>
+          <span className="material-symbols-outlined text-sm mt-0.5" style={{ color: PRIMARY }}>
+            lightbulb
+          </span>
+          <p className="text-xs text-slate-600">{chart.insight}</p>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const sendMessage = async () => {
     if (!chatInput.trim()) return;
     const userMsg = chatInput;
     setMessages(m => [...m, { role: 'user', text: userMsg }]);
     setChatInput('');
-    setTimeout(() => setMessages(m => [...m, { role: 'ai', text: `Analyzing "${userMsg}"... based on the data, I can see a clear pattern here.` }]), 1000);
+    const followUpPrompt = `Previous question was: "${currentPrompt}". 
+        The user is now asking a follow-up: "${userMsg}". 
+        Apply this as a filter or modification to the existing analysis.`;
+    try {
+      setMessages(m => [...m, { role: 'ai', text: '⏳ Analyzing...' }]);
+      const response = await fetch('http://localhost:8000/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: followUpPrompt, session_id: 'default' })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Error');
+      setDashboardData(data);
+      setCurrentPrompt(userMsg);
+      setMessages(m => [
+        ...m.slice(0, -1),
+        { role: 'ai', text: `✅ Dashboard updated! ${data.summary}` }
+      ]);
+    } catch (err) {
+      setError(err.message || 'Error');
+      setMessages(m => [
+        ...m.slice(0, -1),
+        { role: 'ai', text: `❌ ${err.message}` }
+      ]);
+    }
   };
 
   return (
@@ -124,9 +265,9 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <BackButton />
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-[#1A1A1A]">Your Dashboard</h1>
+                <h1 className="text-2xl font-black tracking-tight text-[#1A1A1A]">{dashboard_title || 'Your Dashboard'}</h1>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Results for: <span className="font-mono italic text-slate-500">"monthly sales trend by region"</span>
+                  Results for: <span className="font-mono italic text-slate-500">"{currentPrompt}"</span>
                 </p>
               </div>
             </div>
@@ -139,118 +280,50 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          {/* CHART GRID */}
-          <div className="p-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <div className="p-8 space-y-6">
 
-            {/* REVENUE BAR */}
-            <StaggerChild>
-              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
-                className="p-6 rounded-2xl shadow-lg h-full" style={glassCard}>
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider">Revenue Growth</h3>
-                    <p className="text-3xl font-black mt-1" style={{ color: PRIMARY }}>$420,400</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">+12.5%</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-4">vs last period</p>
-                <div className="h-44">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueData} barSize={28}>
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                      <Tooltip cursor={{ fill: 'rgba(47,141,70,0.06)' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', backdropFilter: 'blur(8px)', background: 'rgba(255,255,255,0.9)' }} />
-                      <Bar dataKey="value" fill={PRIMARY} radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <a href="#" className="text-xs font-bold mt-3 block" style={{ color: PRIMARY }}>Drill down →</a>
-              </motion.div>
-            </StaggerChild>
-
-            {/* REGIONAL PIE */}
-            <StaggerChild>
-              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.12 }}
-                className="p-6 rounded-2xl shadow-lg h-full" style={glassCard}>
-                <div className="mb-2">
-                  <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider">Regional Breakdown</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Market share distribution</p>
-                </div>
-                <div className="h-52">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={regionData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                        {regionData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', background: 'rgba(255,255,255,0.9)' }} formatter={v => `${v}%`} />
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <a href="#" className="text-xs font-bold mt-2 block" style={{ color: PRIMARY }}>Drill down →</a>
-              </motion.div>
-            </StaggerChild>
-
-            {/* CONVERSION LINE — full width */}
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-              className="xl:col-span-2 p-6 rounded-2xl shadow-lg" style={glassCard}>
-              <div className="flex justify-between items-start mb-4">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="p-5 rounded-2xl shadow-sm"
+              style={{ ...glassCard, borderLeft: `4px solid ${PRIMARY}` }}>
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined mt-0.5" style={{ color: PRIMARY }}>
+                  summarize
+                </span>
                 <div>
-                  <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider">Conversion Rate</h3>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <p className="text-3xl font-black" style={{ color: PRIMARY }}>3.2%</p>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">+0.4%</span>
-                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1"
+                    style={{ color: PRIMARY }}>Executive Summary</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{summary}</p>
                 </div>
-                <a href="#" className="text-xs font-bold" style={{ color: PRIMARY }}>Drill down →</a>
-              </div>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={conversionData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9CA3AF' }} domain={[2.5, 3.6]} tickFormatter={v => `${v}%`} />
-                    <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', background: 'rgba(255,255,255,0.9)' }} formatter={v => `${v}%`} />
-                    <Line type="monotone" dataKey="rate" stroke={PRIMARY} strokeWidth={3} dot={{ r: 4, fill: PRIMARY, strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
               </div>
             </motion.div>
 
-            {/* TOP PRODUCTS TABLE — full width */}
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.28 }}
-              className="xl:col-span-2 p-6 rounded-2xl shadow-lg" style={glassCard}>
-              <div className="flex justify-between items-start mb-5">
-                <div>
-                  <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider">Top Performing Products</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">By revenue contribution</p>
-                </div>
-                <a href="#" className="text-xs font-bold" style={{ color: PRIMARY }}>Drill down →</a>
+            <details className="group">
+              <summary className="cursor-pointer text-xs font-bold text-slate-400
+                uppercase tracking-widest hover:text-slate-600 transition-colors
+                flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-sm">code</span>
+                View Generated SQL
+              </summary>
+              <div className="mt-2 p-4 rounded-xl bg-slate-900 overflow-x-auto">
+                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+                  {raw_sql}
+                </pre>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                      <th className="text-left pb-3 font-semibold">Product</th>
-                      <th className="text-right pb-3 font-semibold">Revenue</th>
-                      <th className="text-right pb-3 font-semibold">Share</th>
-                      <th className="text-right pb-3 font-semibold">Growth</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {topProducts.map((p, i) => (
-                      <tr key={i} className="hover:bg-green-50/40 transition-colors">
-                        <td className="py-3.5 font-medium text-slate-800">{p.name}</td>
-                        <td className="py-3.5 text-right font-mono text-slate-600">{p.rev}</td>
-                        <td className="py-3.5 text-right text-slate-400">{p.share}</td>
-                        <td className="py-3.5 text-right">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${p.growth.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>{p.growth}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
+            </details>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {charts.map((chart, index) => {
+                const isWide = charts.length % 2 !== 0 && index === charts.length - 1;
+                return (
+                  <div key={chart.chart_id}
+                    className={isWide ? 'xl:col-span-2' : ''}>
+                    {renderChart(chart, index)}
+                  </div>
+                );
+              })}
+            </div>
 
           </div>
         </main>

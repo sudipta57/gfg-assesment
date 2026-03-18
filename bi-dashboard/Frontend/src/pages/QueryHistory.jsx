@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { FadeIn, Stagger, StaggerChild } from '../components/MotionElements';
 import BackButton from '../components/BackButton';
+import { useApp } from '../context/AppContext';
 
 const PRIMARY = '#2F8D46';
 
@@ -11,15 +12,6 @@ const glassCard = {
   backgroundColor: 'rgba(255,255,255,0.72)',
   border: '1px solid rgba(255,255,255,0.8)',
 };
-
-const HISTORY = [
-  { id: 1, query: 'SELECT region, SUM(revenue) FROM sales GROUP BY region ORDER BY revenue DESC;', label: 'Revenue by Region', time: '2 mins ago', icon: 'bar_chart', rows: 4, duration: '0.24s' },
-  { id: 2, query: 'SELECT product, COUNT(*) as orders, SUM(amount) FROM orders WHERE date > NOW() - INTERVAL 7 DAY GROUP BY product;', label: 'Weekly revenue report', time: '1 hour ago', icon: 'analytics', rows: 12, duration: '0.41s' },
-  { id: 3, query: 'SELECT age_group, gender, COUNT(*) FROM users GROUP BY age_group, gender;', label: 'User demographic split', time: '5 hours ago', icon: 'pie_chart', rows: 8, duration: '0.18s' },
-  { id: 4, query: 'SELECT DATE_FORMAT(sale_date,\'%Y-%m\') as month, region, SUM(revenue) FROM sales GROUP BY month, region;', label: 'Monthly sales trend by region', time: 'Yesterday', icon: 'trending_up', rows: 24, duration: '0.63s' },
-  { id: 5, query: 'SELECT product_id, COUNT(*) as churned FROM subscriptions WHERE status=\'churned\' AND QUARTER(end_date)=3 GROUP BY product_id;', label: 'Churn rate by product Q3', time: '2 days ago', icon: 'data_loss_prevention', rows: 6, duration: '0.31s' },
-  { id: 6, query: 'SELECT customer_id, SUM(order_total) as ltv FROM orders GROUP BY customer_id ORDER BY ltv DESC LIMIT 10;', label: 'Top 10 customers by LTV', time: '3 days ago', icon: 'star', rows: 10, duration: '0.29s' },
-];
 
 function Sidebar() {
   return (
@@ -59,8 +51,11 @@ function Sidebar() {
 
 export default function QueryHistory() {
   const navigate = useNavigate();
+  const { queryHistory, setCurrentPrompt, setDashboardData } = useApp();
   const [search, setSearch] = useState('');
-  const filtered = HISTORY.filter(h => h.label.toLowerCase().includes(search.toLowerCase()) || h.query.toLowerCase().includes(search.toLowerCase()));
+  const filtered = queryHistory.filter(h =>
+    h.prompt.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="flex h-screen overflow-hidden" style={{background:'linear-gradient(135deg, #f0fdf4 0%, #f8f6f6 60%, #eff6ff 100%)'}}>
@@ -92,46 +87,73 @@ export default function QueryHistory() {
 
         <div className="p-8 space-y-4">
           <FadeIn>
-            <p className="text-xs text-slate-400 font-medium">{filtered.length} queries found</p>
+            <p className="text-xs text-slate-400 font-medium">{queryHistory.length} total · {filtered.length} shown</p>
           </FadeIn>
 
           <Stagger stagger={0.06} className="space-y-3">
-            {filtered.map(h => (
-              <StaggerChild key={h.id}>
-                <div className="rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group cursor-pointer" style={glassCard}
-                  onClick={() => navigate('/editor')}>
+            {filtered.map((h, index) => (
+              <StaggerChild key={index}>
+                <div
+                  className="rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                  style={glassCard}
+                  onClick={() => {
+                    setDashboardData(h.dashboardData)
+                    setCurrentPrompt(h.prompt)
+                    navigate('/dashboard')
+                  }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{backgroundColor:`${PRIMARY}15`}}>
-                        <span className="material-symbols-outlined text-base" style={{color:PRIMARY}}>{h.icon}</span>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                        style={{backgroundColor:`${PRIMARY}15`}}>
+                        <span className="material-symbols-outlined text-base" style={{color:PRIMARY}}>
+                          bar_chart
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 mb-1">{h.label}</p>
-                        <code className="text-xs text-slate-400 font-mono block truncate">{h.query}</code>
+                        <p className="text-sm font-bold text-slate-800 mb-1">
+                          {h.dashboardData?.dashboard_title || h.prompt}
+                        </p>
+                        <code className="text-xs text-slate-400 font-mono block truncate">
+                          {h.prompt}
+                        </code>
                         <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
-                          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">schedule</span>{h.time}</span>
-                          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">table_rows</span>{h.rows} rows</span>
-                          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-xs">bolt</span>{h.duration}</span>
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">schedule</span>
+                            {h.timestamp}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">bar_chart</span>
+                            {h.dashboardData?.charts?.length || 0} charts
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <motion.button
+                      <Motion.button
                         whileHover={{scale:1.05}} whileTap={{scale:0.95}}
-                        onClick={e => { e.stopPropagation(); navigate('/editor'); }}
+                        onClick={e => {
+                          e.stopPropagation()
+                          setCurrentPrompt(h.prompt)
+                          navigate('/generating')
+                        }}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors hover:border-[#2F8D46] hover:text-[#2F8D46]"
                         style={{borderColor:'rgba(0,0,0,0.1)'}}
                       >
                         Re-run
-                      </motion.button>
-                      <motion.button
+                      </Motion.button>
+                      <Motion.button
                         whileHover={{scale:1.05}} whileTap={{scale:0.95}}
-                        onClick={e => e.stopPropagation()}
+                        onClick={e => {
+                          e.stopPropagation()
+                          setDashboardData(h.dashboardData)
+                          setCurrentPrompt(h.prompt)
+                          navigate('/dashboard')
+                        }}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
                         style={{backgroundColor:PRIMARY}}
                       >
-                        Save
-                      </motion.button>
+                        View
+                      </Motion.button>
                     </div>
                   </div>
                 </div>
@@ -139,14 +161,27 @@ export default function QueryHistory() {
             ))}
           </Stagger>
 
-          {filtered.length === 0 && (
+          {queryHistory.length === 0 ? (
+            <FadeIn>
+              <div className="text-center py-20 text-slate-400">
+                <span className="material-symbols-outlined text-5xl mb-4 block">history</span>
+                <p className="font-medium mb-2">No queries yet</p>
+                <p className="text-sm mb-6">Your query history will appear here after you generate a dashboard.</p>
+                <Link to="/editor"
+                  className="text-sm font-bold px-6 py-2.5 rounded-xl text-white inline-block"
+                  style={{backgroundColor: PRIMARY}}>
+                  Ask your first question
+                </Link>
+              </div>
+            </FadeIn>
+          ) : filtered.length === 0 ? (
             <FadeIn>
               <div className="text-center py-20 text-slate-400">
                 <span className="material-symbols-outlined text-5xl mb-4 block">manage_search</span>
                 <p className="font-medium">No queries match your search</p>
               </div>
             </FadeIn>
-          )}
+          ) : null}
         </div>
       </main>
     </div>

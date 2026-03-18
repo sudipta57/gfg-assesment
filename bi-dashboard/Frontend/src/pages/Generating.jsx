@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '../hooks/useMotion';
 import BackButton from '../components/BackButton';
+import { useApp } from '../context/AppContext';
 
 const PRIMARY = '#2F8D46';
 
@@ -17,11 +18,22 @@ const STEPS = [
 export default function Generating() {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
+  const { currentPrompt, setDashboardData, setError, setIsLoading, addToHistory } = useApp();
+  const API_BASE = 'http://localhost:8000';
   const [activeStep, setActiveStep] = useState(0);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Advance steps
+    // Guard: if no prompt, go back to editor
+    if (!currentPrompt || !currentPrompt.trim()) {
+      navigate('/editor');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    // Step animation timer — keep exactly as before
     let step = 0;
     const sTimer = setInterval(() => {
       step++;
@@ -29,15 +41,66 @@ export default function Generating() {
       if (step >= STEPS.length - 1) clearInterval(sTimer);
     }, 650);
 
-    // Progress animation
+    // Progress bar animation — keep exactly as before
     const pTimer = setInterval(() => {
-      setProgress(p => { if (p >= 100) { clearInterval(pTimer); return 100; } return p + 1.8; });
+      setProgress(p => {
+        if (p >= 90) { clearInterval(pTimer); return 90; }
+        return p + 1.8;
+      });
     }, 55);
+    // Note: progress only goes to 90 automatically,
+    // it will jump to 100 when API call completes
 
-    // Navigate after 3.5s
-    const navTimer = setTimeout(() => navigate('/dashboard'), 3500);
-    return () => { clearInterval(sTimer); clearInterval(pTimer); clearTimeout(navTimer); };
-  }, [navigate]);
+    // API call
+    const fetchDashboard = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: currentPrompt,
+            session_id: 'default'
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // API returned an error (422, 500, etc.)
+          throw new Error(data.detail || 'Failed to generate dashboard');
+        }
+
+        // Success
+        setDashboardData(data);
+        addToHistory(currentPrompt, data);
+        setProgress(100);
+
+        // Small delay so user sees 100% before navigating
+        setTimeout(() => {
+          setIsLoading(false);
+          navigate('/dashboard');
+        }, 600);
+
+      } catch (err) {
+        setError(err.message || 'Something went wrong');
+        setIsLoading(false);
+        setProgress(0);
+        // Navigate back to editor with a small delay
+        setTimeout(() => navigate('/editor'), 2000);
+      } finally {
+        clearInterval(sTimer);
+        clearInterval(pTimer);
+      }
+    };
+
+    fetchDashboard();
+
+    // Cleanup
+    return () => {
+      clearInterval(sTimer);
+      clearInterval(pTimer);
+    };
+  }, [currentPrompt, navigate]);
 
   return (
     <div className="flex flex-col min-h-screen" style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #f8f6f6 50%, #eff6ff 100%)'}}>
@@ -64,7 +127,9 @@ export default function Generating() {
         <motion.div initial={prefersReduced ? {} : {opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{duration:0.4}}>
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{color: PRIMARY}}>Processing</p>
           <h1 className="text-4xl font-black tracking-tight text-[#1A1A1A] mb-1">Generating Dashboard</h1>
-          <p className="text-slate-500">Transforming your query into a visual masterpiece...</p>
+          <p className="text-slate-500 font-mono text-sm truncate max-w-lg">
+            "{currentPrompt || 'Processing your query...'}"
+          </p>
         </motion.div>
 
         {/* GLASS STEP CARD */}

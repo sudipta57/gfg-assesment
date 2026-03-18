@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import { FadeIn, Stagger, StaggerChild, MotionButton } from '../components/MotionElements';
 import BackButton from '../components/BackButton';
+import { useApp } from '../context/AppContext';
 
 const PRIMARY = '#2F8D46';
 
@@ -11,8 +12,13 @@ export default function CsvUpload() {
   const [parsedData, setParsedData] = useState(null);
   const [columns, setColumns] = useState([]);
   const [fileName, setFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [fileObject, setFileObject] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const { setCurrentPrompt } = useApp();
 
   const handleDrag = (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -44,6 +50,44 @@ export default function CsvUpload() {
         }));
       },
     });
+    setFileObject(file);
+  };
+
+  const handleUploadAndQuery = async () => {
+    if (!fileObject) {
+      setCurrentPrompt('');
+      navigate('/editor');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', fileObject);
+
+      const response = await fetch('http://localhost:8000/upload-csv', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Upload failed');
+      }
+
+      setUploadSuccess(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        setCurrentPrompt('');
+        navigate('/editor');
+      }, 1000);
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed. Please try again.');
+      setIsUploading(false);
+    }
   };
 
   const barHeights = [40, 60, 75, 50, 85];
@@ -149,15 +193,56 @@ export default function CsvUpload() {
         {/* CTA */}
         <FadeIn>
           <section className="flex flex-col items-center pb-12">
-            <MotionButton
-              onClick={() => navigate('/editor')}
-              className="text-white px-10 py-5 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"
-              style={{backgroundColor: PRIMARY}}
-            >
-              Start Querying This Data
-              <span className="material-symbols-outlined">auto_awesome</span>
-            </MotionButton>
-            <p className="mt-4 text-slate-400 text-sm">QueryIQ will automatically index your data for natural language searches.</p>
+            <div className="flex flex-col items-center gap-4">
+              {uploadError && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm max-w-md text-center">
+                  <span className="material-symbols-outlined text-base">error</span>
+                  {uploadError}
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+                  <span className="material-symbols-outlined text-base" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
+                  CSV uploaded successfully! Redirecting to editor...
+                </div>
+              )}
+
+              <MotionButton
+                onClick={handleUploadAndQuery}
+                disabled={isUploading}
+                className="text-white px-10 py-5 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{backgroundColor: PRIMARY}}
+              >
+                {isUploading ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin">sync</span>
+                    Uploading CSV...
+                  </>
+                ) : uploadSuccess ? (
+                  <>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Uploaded! Redirecting...
+                  </>
+                ) : parsedData ? (
+                  <>
+                    Upload & Start Querying
+                    <span className="material-symbols-outlined">auto_awesome</span>
+                  </>
+                ) : (
+                  <>
+                    Start Querying This Data
+                    <span className="material-symbols-outlined">auto_awesome</span>
+                  </>
+                )}
+              </MotionButton>
+
+              <p className="text-slate-400 text-sm">
+                {parsedData
+                  ? 'Your CSV will be uploaded and indexed for natural language queries.'
+                  : 'QueryIQ will automatically index your data for natural language searches.'}
+              </p>
+            </div>
           </section>
         </FadeIn>
       </main>

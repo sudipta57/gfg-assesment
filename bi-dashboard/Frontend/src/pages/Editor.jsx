@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FadeIn, Stagger, StaggerChild, MotionButton } from '../components/MotionElements';
 import BackButton from '../components/BackButton';
+import { useApp } from '../context/AppContext';
 
 const PRIMARY = '#2F8D46';
 
@@ -39,9 +40,15 @@ function Sidebar() {
 
 export default function Editor() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('-- Write your SQL query here...\nSELECT * FROM main_production.sales\nLIMIT 100;');
+  const { setCurrentPrompt, currentPrompt } = useApp();
+  const [query, setQuery] = useState('');
 
-  const suggestions = ['Show me monthly sales trend', 'Top products by revenue', 'Churn rate by region Q1', 'User growth YoY'];
+  const suggestions = [
+    'Show me total revenue by product category',
+    'Monthly sales trend for 2023 by region',
+    'Which payment method is most popular?',
+    'Top 5 products by average rating'
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f6f6]">
@@ -66,8 +73,8 @@ export default function Editor() {
           <div className="max-w-4xl mx-auto space-y-8">
             <FadeIn>
               <div>
-                <h2 className="text-2xl font-bold text-[#1A1A1A] mb-1">Query Editor</h2>
-                <p className="text-slate-500 text-sm">Write SQL or use the AI assistant to fetch data from your warehouse.</p>
+                <h2 className="text-2xl font-bold text-[#1A1A1A] mb-1">AI Query Assistant</h2>
+                <p className="text-slate-500 text-sm">Describe what you want to see in plain English. QueryIQ will generate the charts automatically.</p>
               </div>
             </FadeIn>
 
@@ -79,13 +86,14 @@ export default function Editor() {
                     <div className="w-3 h-3 rounded-full bg-amber-400"></div>
                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                   </div>
-                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider ml-2">query.sql</span>
+                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider ml-2">natural_language_query.txt</span>
                 </div>
                 <textarea
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   className="w-full h-64 p-6 font-mono text-sm resize-none bg-white focus:ring-0 border-none outline-none text-slate-800"
                   spellCheck={false}
+                  placeholder={"Ask anything about your data in plain English...\ne.g. Show me monthly revenue trend by region for 2023"}
                 />
               </div>
             </FadeIn>
@@ -97,7 +105,7 @@ export default function Editor() {
                   {suggestions.map(s => (
                     <StaggerChild key={s}>
                       <button
-                        onClick={() => setQuery(`-- ${s}\nSELECT * FROM main_production.sales LIMIT 100;`)}
+                        onClick={() => setQuery(s)}
                         className="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-semibold hover:border-[#2F8D46] hover:text-[#2F8D46] transition-colors shadow-sm"
                       >{s}</button>
                     </StaggerChild>
@@ -109,7 +117,11 @@ export default function Editor() {
             <FadeIn delay={0.2}>
               <div className="flex justify-end">
                 <MotionButton
-                  onClick={() => navigate('/generating')}
+                  onClick={() => {
+                    if (!query.trim()) return;
+                    setCurrentPrompt(query);
+                    navigate('/generating');
+                  }}
                   disabled={!query.trim()}
                   className="text-white font-bold py-3 px-10 rounded-xl flex items-center gap-3 shadow-lg disabled:opacity-40"
                   style={{backgroundColor: PRIMARY}}

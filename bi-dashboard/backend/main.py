@@ -87,40 +87,40 @@ def query(request: QueryRequest) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-
 @app.post("/upload-csv")
-def upload_csv(file: UploadFile = File(...)) -> dict:
-    """Upload a CSV file and replace the sales table with its contents."""
-    temp_path = _backend_path("backend/data/uploaded.csv")
-    db_path = _backend_path("backend/sales.db")
-
+async def upload_csv(file: UploadFile = File(...)):
+    """Upload a CSV file and reinitialize the database with new data."""
     try:
-        if not file.filename or not file.filename.lower().endswith(".csv"):
+        if not file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="Only CSV files are allowed")
 
-        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+        # Read file contents
+        contents = await file.read()
 
-        with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Save as the main CSV file (overwrite existing)
+        csv_path = "data/amazon_sales.csv"
+        with open(csv_path, "wb") as f:
+            f.write(contents)
 
-        df = read_csv_with_fallback(temp_path)
-        df.columns = [column.strip().lower().replace(" ", "_") for column in df.columns]
+        # Force reinitialize DB with new CSV
+        # Delete existing DB first
+        if os.path.exists("sales.db"):
+            os.remove("sales.db")
 
-        connection = sqlite3.connect(db_path)
-        try:
-            df.to_sql("sales", connection, if_exists="replace", index=False)
-        finally:
-            connection.close()
+        # Reload
+        init_db()
 
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        # Get row count
+        df = pd.read_csv(csv_path)
+        df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
 
         return {
             "success": True,
             "message": f"CSV loaded successfully. {len(df)} rows imported.",
-            "columns": list(df.columns),
+            "columns": list(df.columns)
         }
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(e))

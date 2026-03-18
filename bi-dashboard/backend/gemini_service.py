@@ -55,6 +55,12 @@ def generate_dashboard_config(user_prompt: str, schema: str) -> dict:
 	{{ "error": "string - a polite explanation of why the question cannot be answered with available data" }}
 	7. Never invent column names. Only use columns that exist in the schema.
 	8. For order_date, use SQLite date functions like strftime('%Y-%m', order_date) for monthly grouping.
+	9. For WHERE clause string filtering, ALWAYS use UPPER() on both sides for case-insensitive matching.
+   Example: WHERE UPPER(model) = UPPER('x3') instead of WHERE model = 'x3'
+   This ensures user input like 'x3', 'X3', or 'X 3' all match correctly.
+   10. Before writing any WHERE clause that filters by a categorical column value,
+    mentally note that the actual data values may differ in case from what the user typed.
+    Always apply UPPER() to both the column and the value to be safe.
 	"""
 
 		full_prompt = f"{system_prompt}\n\nUser Question: {user_prompt}"
